@@ -19,6 +19,27 @@ async function connect() {
   }
 }
 
+// Function to get data to by ID
+async function getData(id) {
+  let connection;
+  try {
+    connection = await connect();
+    const getRowSql = `SELECT ID FROM FILES WHERE ID = :1`;
+    const getRow = await connection.execute(getRowSql, [id]);
+    await connection.commit();
+    return getRow
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+}
 // Function to add data to the database
 async function addData(path, info) {
   let connection;
@@ -27,7 +48,7 @@ async function addData(path, info) {
     const insertSql = `INSERT INTO FILES (PATH, INFO) VALUES (:1, :2)`;
     await connection.execute(insertSql, [path, info]);
     await connection.commit();
-    console.log('Data added to database');
+    console.log('Data added to database ' + path);
   } catch (err) {
     console.error(err);
   } finally {
