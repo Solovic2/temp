@@ -6,7 +6,7 @@ const database = require('./db');
 const folderPath = "E:\\Islam\\temp";
 const app = express();
 
-
+// Get Files With Last Modified
 function getSortedFilesByLastModifiedTime(directoryPath) {
   return new Promise((resolve, reject) => {
     fs.readdir(directoryPath, (err, files) => {
@@ -37,16 +37,16 @@ function getSortedFilesByLastModifiedTime(directoryPath) {
 
 function readAndPutIntoDB(){
   getSortedFilesByLastModifiedTime(folderPath)
-    .then((sortedFiles) => {
-      sortedFiles.forEach(element => {
-        database.addData(element.path)
-      })
-    }
+    .then(async (sortedFiles) => {
+        console.log(sortedFiles)
+        for (let i = 0; i < sortedFiles.length; i++){
+          await database.addData(sortedFiles[i].path)
+        }
+      }
     )
     .catch((err) => console.error(err));
 
 }
-
 readAndPutIntoDB()
 
 
