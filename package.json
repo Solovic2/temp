@@ -11,10 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chokidar": "^3.5.3",
     "config": "^3.3.9",
     "express": "^4.18.2",
     "nodemon": "^2.0.22",
-    "oracledb": "^5.2.0",
+    "oracledb": "^5.5.0",
     "sequelize": "^6.32.0"
   }
 }
