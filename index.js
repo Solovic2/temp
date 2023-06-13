@@ -6,6 +6,24 @@ const database = require('./db');
 const folderPath = "E:\\Islam\\temp";
 const app = express();
 
+
+// element will be phoneNumber-day-month-year.[txt/wav]
+// info => [phoneNumber or '', day-month-year, txt or wav]
+const splitPath = (element) => {
+  const path = element.split("\\");
+  const splitter = path[path.length - 1].split('-');
+  splitter[3] = splitter[3].split(".");
+  const info = []
+  if(splitter[0].length === 11 ){
+      info.push(splitter[0])
+  }else{
+    info.push('')
+  }
+  info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3][0])
+  info.push(splitter[3][1])
+  return info;
+};
+
 // Get Files With Last Modified
 function getSortedFilesByLastModifiedTime(directoryPath) {
   return new Promise((resolve, reject) => {
@@ -39,10 +57,10 @@ function readAndPutIntoDB(){
   getSortedFilesByLastModifiedTime(folderPath)
     .then(async (sortedFiles) => {
         console.log(sortedFiles)
-      
         for (let i = 0; i < sortedFiles.length; i++){
           if(!await database.isDataInDataBase(sortedFiles[i].path)){
-            await database.addData(sortedFiles[i].path)
+            const data = splitPath(sortedFiles[i].path)
+            await database.addData(sortedFiles[i].path, '', data[0], data[1], data[2])
           }else{
             console.log("this path is already in db")
           }
@@ -56,26 +74,12 @@ function readAndPutIntoDB(){
 readAndPutIntoDB()
 
 
-// element will be phoneNumber-day-month-year.[txt/wav]
-// info => [phoneNumber or '', day-month-year, txt or wav]
-const splitString = (element) => {
-  const splitter = element.split('-');
-  splitter[3] = splitter[3].split(".");
-  const info = []
-  if(splitter[0].length === 11 ){
-      info.push(splitter[0])
-  }else{
 
-  }
-  info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3][0])
-  info.push(splitter[3][1])
-  return info;
-};
 
 // create a route to test the database connection
-app.get('/', (req, res) => {
-    
-    res.send("Hello")
+app.get('/', async (req, res) => {
+    const data = await database.getData();
+    res.json(data)
 });
 
 // Watch files when add or delete

@@ -20,8 +20,8 @@ async function execute(query, params) {
     }
   }
 }
-// Function to get data to by ID
 
+// Function to get path 
 async function getPathID(path) {
   try {
     const getRowSql = `SELECT ID FROM FILES WHERE PATH = :1`;
@@ -31,6 +31,7 @@ async function getPathID(path) {
     console.error(err);
   }
 }
+// Function to check if the path is already in database
 async function isDataInDataBase(path) {
   try {
     const getRowSql = `SELECT COUNT(PATH) FROM FILES WHERE PATH = :1`;
@@ -40,17 +41,28 @@ async function isDataInDataBase(path) {
     console.error(err);
   }
 }
-// Function to add data to the database
-async function addData(path, info) {
+
+// Function to get the data from database
+async function getData() {
   try {
-    const insertSql = `INSERT INTO FILES (PATH, INFO) VALUES (:1, :2)`;
-    const getRow  = await execute(insertSql, [path, info]);
-    console.log('Data added to database ' + path);
+    const getDataSql = `SELECT * FROM FILES`;
+    const getDataRows = await execute(getDataSql,[]);
+    return getDataRows.rows;
   } catch (err) {
     console.error(err);
   }
 }
 
+// Function to add data to the database
+async function addData(path, info = '', mobile = '', date = '', type = '') {
+  try {
+    const insertSql = `INSERT INTO FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5)`;
+    const getRow  = await execute(insertSql, [path, info, mobile, date, type]);
+    console.log('Data added to database ' + path);
+  } catch (err) {
+    console.error(err);
+  }
+}
 // Function to update data in the database
 async function updateData(id, path, info, datetime) {
   try {
@@ -61,7 +73,6 @@ async function updateData(id, path, info, datetime) {
     console.error(err);
   }
 }
-
 // Function to delete data from the database
 async function deleteData(id) {
   try{
@@ -73,4 +84,4 @@ async function deleteData(id) {
   }
 }
 
-module.exports = { getPathID, isDataInDataBase, addData, updateData, deleteData };
+module.exports = { getPathID, isDataInDataBase, getData, addData, updateData, deleteData };
