@@ -7,103 +7,70 @@ const dbConfig = {
   connectString: '62.117.51.155:1521/xe',
 };
 
-// Establish a database connection
-async function connect() {
-  let connection;
+async function execute(query, params) {
+  let conn;
   try {
-    connection = await oracledb.getConnection(dbConfig);
-    console.log('Connected to database');
-    return connection;
+    conn = await oracledb.getConnection(dbConfig);
+    const result = await conn.execute(query, params);
+    await conn.commit();
+    return result;
+  } finally {
+    if (conn) {
+      await conn.close();
+    }
+  }
+}
+// Function to get data to by ID
+
+async function getPathID(path) {
+  try {
+    const getRowSql = `SELECT ID FROM FILES WHERE PATH = :1`;
+    const getRow = await execute(getRowSql, [path]);
+    return getRow.rows[0][0];
   } catch (err) {
     console.error(err);
   }
 }
-
-// Function to get data to by ID
-async function getData(id) {
-  let connection;
+async function isDataInDataBase(path) {
   try {
-    connection = await connect();
-    const getRowSql = `SELECT ID FROM FILES WHERE ID = :1`;
-    const getRow = await connection.execute(getRowSql, [id]);
-    await connection.commit();
-    return getRow
+    const getRowSql = `SELECT COUNT(PATH) FROM FILES WHERE PATH = :1`;
+    const getRow = await execute(getRowSql, [path]);
+    return getRow.rows[0] > 0;
   } catch (err) {
     console.error(err);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
   }
 }
 // Function to add data to the database
 async function addData(path, info) {
-  let connection;
   try {
-    connection = await connect();
     const insertSql = `INSERT INTO FILES (PATH, INFO) VALUES (:1, :2)`;
-    await connection.execute(insertSql, [path, info]);
-    await connection.commit();
+    const getRow  = await execute(insertSql, [path, info]);
     console.log('Data added to database ' + path);
   } catch (err) {
     console.error(err);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
   }
 }
 
 // Function to update data in the database
-async function updateData(path, info, datetime, id) {
-  let connection;
+async function updateData(id, path, info, datetime) {
   try {
-    connection = await connect();
     const updateSql = `UPDATE FILES SET PATH = :1, INFO = :2, DATETIME = :3 WHERE ID = :4`;
-    await connection.execute(updateSql, [path, info, datetime, id]);
-    await connection.commit();
+    const updateRow= await execute(updateSql, [path, info, datetime, id]);
     console.log('Data updated in database');
   } catch (err) {
     console.error(err);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
   }
 }
 
 // Function to delete data from the database
 async function deleteData(id) {
-  let connection;
-  try {
-    connection = await connect();
+  try{
     const deleteSql = `DELETE FROM FILES WHERE ID = :1`;
-    await connection.execute(deleteSql, [id]);
-    await connection.commit();
+    const deleteRow = await execute(deleteSql, [id]);
     console.log('Data deleted from database');
   } catch (err) {
     console.error(err);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
   }
 }
 
-module.exports = { connect, addData, updateData, deleteData };
+module.exports = { getPathID, isDataInDataBase, addData, updateData, deleteData };

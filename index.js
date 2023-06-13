@@ -39,8 +39,14 @@ function readAndPutIntoDB(){
   getSortedFilesByLastModifiedTime(folderPath)
     .then(async (sortedFiles) => {
         console.log(sortedFiles)
+      
         for (let i = 0; i < sortedFiles.length; i++){
-          await database.addData(sortedFiles[i].path)
+          if(!await database.isDataInDataBase(sortedFiles[i].path)){
+            await database.addData(sortedFiles[i].path)
+          }else{
+            console.log("this path is already in db")
+          }
+          
         }
       }
     )
@@ -72,20 +78,22 @@ app.get('/', (req, res) => {
     res.send("Hello")
 });
 
-
-// const watcher = chokidar.watch(folderPath, {
-//   persistent: true,
-//   ignoreInitial: true,
-// });
-// watcher.on('all', (event, path) => {
-//   console.log(event, path);
-//   readFiles();
-// });
-// watcher
-//   .on('add', path => console.log(`File ${path} has been added`))
-//   .on('change', path => console.log(`File ${path} has been changed`))
-//   .on('unlink', path => console.log(`File ${path} has been removed`))
-//   .on('error', error => console.log(`Watcher error: ${error}`));
+// Watch files when add or delete
+const watcher = chokidar.watch(folderPath, {
+  persistent: true,
+  ignoreInitial: true,
+});
+watcher
+  .on('add', path => {
+    console.log(`File ${path} has been added`)
+    database.addData(path)
+  })
+  .on('unlink', async path => {
+    console.log(`File ${path} has been removed`)
+    const id = await database.getPathID(path)
+    database.deleteData(id)
+  })
+  .on('error', error => console.log(`Watcher error: ${error}`));
 // start the server
 app.listen(9000, () => {
   console.log('Server started on port 9000');
