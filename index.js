@@ -3,10 +3,10 @@ const fs = require('fs');
 const oracledb = require('oracledb');
 const chokidar = require('chokidar');
 const database = require('./db');
+var cors = require('cors')
 const folderPath = "E:\\Islam\\temp";
 const app = express();
-
-
+app.use(cors());
 // element will be phoneNumber-day-month-year.[txt/wav]
 // info => [phoneNumber or '', day-month-year, txt or wav]
 const splitPath = (element) => {
