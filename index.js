@@ -3,24 +3,36 @@ const fs = require('fs');
 const oracledb = require('oracledb');
 const chokidar = require('chokidar');
 const database = require('./db');
+const WebSocket = require('ws');
 var cors = require('cors')
 const folderPath = "E:\\Islam\\temp";
 const app = express();
 app.use(cors());
+
+// WebSocket for notification
+const wss = new WebSocket.Server({ port: 8000 });
+wss.on('connection', (ws) => {
+  console.log('WebSocket connected');
+
+  // send a message to the client to indicate that the connection was successful
+  ws.send('WebSocket connected');
+});
+
+
 // element will be phoneNumber-day-month-year.[txt/wav]
 // info => [phoneNumber or '', day-month-year, txt or wav]
 const splitPath = (element) => {
-  const path = element.split("\\");
-  const splitter = path[path.length - 1].split('-');
-  splitter[3] = splitter[3].split(".");
+  const path = element.split(/[\\\.]/);
+  console.log(path)
+  const splitter = path[path.length - 2].split('-');
   const info = []
   if(splitter[0].length === 11 ){
       info.push(splitter[0])
   }else{
     info.push('')
   }
-  info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3][0])
-  info.push(splitter[3][1])
+  info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3])
+  info.push(path[path.length - 1])
   return info;
 };
 
@@ -91,12 +103,36 @@ watcher
   .on('add', path => {
     console.log(`File ${path} has been added`)
     const data = splitPath(path)
+    console.log(data)
     database.addData(path, '', data[0], data[1], data[2])
+    let item = {
+      type: 'add',
+      data : {
+        path: path,
+        info:'',
+        mobile: data[0],
+        fileDate: data[1],
+        fileType: data[2]
+      }
+    };
+    const message = JSON.stringify(item);
+    wss.clients.forEach((client) => {
+      client.send(message);
+    });
   })
   .on('unlink', async path => {
     console.log(`File ${path} has been removed`)
     const id = await database.getPathID(path)
     database.deleteData(id)
+    let message = {
+      type: 'delete',
+      data : {
+        id: id
+      },
+    }
+    wss.clients.forEach((client) => {
+      client.send(JSON.stringify(message));
+    });
   })
   .on('error', error => console.log(`Watcher error: ${error}`));
 // start the server
