@@ -90,7 +90,8 @@ const watcher = chokidar.watch(folderPath, {
 watcher
   .on('add', path => {
     console.log(`File ${path} has been added`)
-    database.addData(path)
+    const data = splitPath(path)
+    database.addData(path, '', data[0], data[1], data[2])
   })
   .on('unlink', async path => {
     console.log(`File ${path} has been removed`)
