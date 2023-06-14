@@ -47,7 +47,24 @@ async function getData() {
   try {
     const getDataSql = `SELECT * FROM FILES`;
     const getDataRows = await execute(getDataSql,[]);
-    return getDataRows.rows;
+    let jsonData = [];
+
+    for (let i = 0; i < getDataRows.rows.length; i++) {
+      let row = getDataRows.rows[i];
+    
+      // create a new object for each row with the desired fields
+      let newItem = {
+        path: row[0],
+        info: row[1],
+        mobile: row[4],
+        fileType: row[5],
+        fileDate: row[6]
+      };
+    
+      // add the new item to the JSON array
+      jsonData.push(newItem);
+    }
+    return jsonData;
   } catch (err) {
     console.error(err);
   }
