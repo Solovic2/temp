@@ -13,9 +13,6 @@ app.use(cors());
 const wss = new WebSocket.Server({ port: 8000 });
 wss.on('connection', (ws) => {
   console.log('WebSocket connected');
-
-  // send a message to the client to indicate that the connection was successful
-  ws.send('WebSocket connected');
 });
 
 
