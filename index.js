@@ -5,7 +5,7 @@ const chokidar = require('chokidar');
 const database = require('./db');
 const WebSocket = require('ws');
 var cors = require('cors')
-const folderPath = "E:\\Islam\\temp";
+const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
 app.use(cors());
 
@@ -97,16 +97,17 @@ const watcher = chokidar.watch(folderPath, {
   ignoreInitial: true,
 });
 watcher
-  .on('add', path => {
+  .on('add', async path => {
     console.log(`File ${path} has been added`)
     const data = splitPath(path)
     console.log(data)
-    database.addData(path, '', data[0], data[1], data[2])
+    const result = await database.addData(path, '', data[0], data[1], data[2])
     let item = {
       type: 'add',
       data : {
         path: path,
         info:'',
+        id: result,
         mobile: data[0],
         fileDate: data[1],
         fileType: data[2]

@@ -4,7 +4,7 @@ const oracledb = require('oracledb');
 const dbConfig = {
   user: 'complain',
   password: '123',
-  connectString: '62.117.51.155:1521/xe',
+  connectString: '62.117.51.154:1521/xe',
 };
 
 async function execute(query, params) {
@@ -56,9 +56,11 @@ async function getData() {
       let newItem = {
         path: row[0],
         info: row[1],
+        id : row[2],
         mobile: row[4],
         fileType: row[5],
-        fileDate: row[6]
+        fileDate: row[6],
+        
       };
     
       // add the new item to the JSON array
@@ -73,9 +75,10 @@ async function getData() {
 // Function to add data to the database
 async function addData(path, info = '', mobile = '', date = '', type = '') {
   try {
-    const insertSql = `INSERT INTO FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5)`;
-    const getRow  = await execute(insertSql, [path, info, mobile, date, type]);
+    const insertSql = `INSERT INTO FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5) RETURNING id INTO :output_id`;
+    const getRow  = await execute(insertSql, [path, info, mobile, date, type, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
     console.log('Data added to database ' + path);
+    return getRow.outBinds[0][0];
   } catch (err) {
     console.error(err);
   }
