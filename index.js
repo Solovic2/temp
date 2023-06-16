@@ -25,10 +25,11 @@ const splitPath = (element) => {
   const info = []
   if(splitter[0].length === 11 ){
       info.push(splitter[0])
+      info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3])
   }else{
     info.push('')
+    info.push(splitter[0] + "-" + splitter[1] + "-" + splitter[2])
   }
-  info.push(splitter[1] + "-" + splitter[2] + "-" + splitter[3])
   info.push(path[path.length - 1])
   return info;
 };
