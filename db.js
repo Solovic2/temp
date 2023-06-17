@@ -95,10 +95,10 @@ async function addData(path, info = '', mobile = '', date = '', type = '') {
   }
 }
 // Function to update data in the database
-async function updateData(id, path, info, datetime) {
+async function updateData(info, id) {
   try {
-    const updateSql = `UPDATE FILES SET PATH = :1, INFO = :2, DATETIME = :3 WHERE ID = :4`;
-    const updateRow= await execute(updateSql, [path, info, datetime, id]);
+    const updateSql = `UPDATE FILES SET INFO = :1 WHERE ID = :2`;
+    const updateRow= await execute(updateSql, [info, id]);
     console.log('Data updated in database');
   } catch (err) {
     console.error(err);

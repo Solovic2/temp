@@ -7,6 +7,7 @@ const WebSocket = require('ws');
 var cors = require('cors')
 const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
+app.use(express.json());
 app.use(cors());
 
 // WebSocket for notification
@@ -91,6 +92,18 @@ app.get('/', async (req, res) => {
     const data = await database.getData();
     res.json(data)
 });
+app.post('/update-complain/:id', async (req, res) => {
+  
+  try {
+    const id = req.params.id;
+    const  {info}  = req.body;
+    await database.updateData(info, id)
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error updating database:', error);
+    res.sendStatus(500);
+  }
+});
 app.delete('/delete-complain/:id', async (req, res) => {
   try {
     const path = await database.getPathFromID(req.params.id);
@@ -101,7 +114,7 @@ app.delete('/delete-complain/:id', async (req, res) => {
     // Delete file from file system
     await fs.promises.unlink(path);
     console.log("File Deleted")
-    
+
   } catch (error) {
     console.error('Error deleting card:', error);
     res.status(500).send('Internal server error');
