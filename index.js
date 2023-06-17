@@ -91,7 +91,22 @@ app.get('/', async (req, res) => {
     const data = await database.getData();
     res.json(data)
 });
-
+app.delete('/delete-complain/:id', async (req, res) => {
+  try {
+    const path = await database.getPathFromID(req.params.id);
+    console.log(path)
+    await database.deleteData(req.params.id);
+    res.send('Record deleted successfully From DB');
+    
+    // Delete file from file system
+    await fs.promises.unlink(path);
+    console.log("File Deleted")
+    
+  } catch (error) {
+    console.error('Error deleting card:', error);
+    res.status(500).send('Internal server error');
+  }
+});
 // Watch files when add or delete
 const watcher = chokidar.watch(folderPath, {
   persistent: true,

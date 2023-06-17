@@ -4,7 +4,7 @@ const oracledb = require('oracledb');
 const dbConfig = {
   user: 'complain',
   password: '123',
-  connectString: '62.117.51.154:1521/xe',
+  connectString: '62.117.51.155:1521/xe',
 };
 
 async function execute(query, params) {
@@ -21,11 +21,22 @@ async function execute(query, params) {
   }
 }
 
-// Function to get path 
+// Function to get path ID 
 async function getPathID(path) {
   try {
     const getRowSql = `SELECT ID FROM FILES WHERE PATH = :1`;
     const getRow = await execute(getRowSql, [path]);
+    return getRow.rows[0][0];
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Function to get path From ID 
+async function getPathFromID(id) {
+  try {
+    const getRowSql = `SELECT PATH FROM FILES WHERE ID = :1`;
+    const getRow = await execute(getRowSql, [id]);
     return getRow.rows[0][0];
   } catch (err) {
     console.error(err);
@@ -104,4 +115,4 @@ async function deleteData(id) {
   }
 }
 
-module.exports = { getPathID, isDataInDataBase, getData, addData, updateData, deleteData };
+module.exports = { getPathFromID, getPathID, isDataInDataBase, getData, addData, updateData, deleteData };
