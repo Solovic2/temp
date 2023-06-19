@@ -17,6 +17,7 @@ wss.on('connection', (ws) => {
 });
 
 
+// Split The Path
 // element will be phoneNumber-day-month-year.[txt/wav]
 // info => [phoneNumber or '', day-month-year, txt or wav]
 const splitPath = (element) => {
@@ -63,7 +64,7 @@ function getSortedFilesByLastModifiedTime(directoryPath) {
     });
   });
 }
-
+// Read And Put Into Database
 function readAndPutIntoDB(){
   getSortedFilesByLastModifiedTime(folderPath)
     .then(async (sortedFiles) => {
@@ -87,11 +88,41 @@ readAndPutIntoDB()
 
 
 
-// create a route to test the database connection
+// create a route to get data from the database 
 app.get('/', async (req, res) => {
     const data = await database.getData();
     res.json(data)
 });
+
+// API For Get The File Text
+app.get('/file/:filePath', (req, res) => {
+  const filePath = folderPath + "\\" +req.params.filePath;
+  console.log(req.params.filePath)
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.status(404).send('File not found');
+    } else {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename=${filePath}`);
+      res.send(data);
+    }
+  });
+});
+
+// API For Get The Audio File
+app.get('/audio/:filePath', (req, res) => {
+  const filePath = folderPath + "\\" +req.params.filePath;
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.status(404).send('File not found');
+    } else {
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.send(data);
+    }
+  });
+});
+
+// API To Update The Database With The New Reply
 app.post('/update-complain/:id', async (req, res) => {
   
   try {
@@ -104,6 +135,7 @@ app.post('/update-complain/:id', async (req, res) => {
     res.sendStatus(500);
   }
 });
+// API For Delete The Shakwa 
 app.delete('/delete-complain/:id', async (req, res) => {
   try {
     const path = await database.getPathFromID(req.params.id);
@@ -120,6 +152,7 @@ app.delete('/delete-complain/:id', async (req, res) => {
     res.status(500).send('Internal server error');
   }
 });
+
 // Watch files when add or delete
 const watcher = chokidar.watch(folderPath, {
   persistent: true,
