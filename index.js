@@ -94,6 +94,18 @@ app.get('/', async (req, res) => {
     res.json(data)
 });
 
+// create a route to get data today
+app.get('/dateToday/:date', async (req, res) => {
+  try {
+    const date = req.params.date;
+    const data = await database.getDataToday(date)
+    res.json(data)
+  } catch (error) {
+    console.error('Error updating database:', error);
+    res.sendStatus(500);
+  }
+});
+
 // API For Get The File Text
 app.get('/file/:filePath', (req, res) => {
   const filePath = folderPath + "\\" +req.params.filePath;
@@ -139,11 +151,6 @@ app.post('/update-complain/:id', async (req, res) => {
 app.delete('/delete-complain/:id', async (req, res) => {
   try {
     const path = await database.getPathFromID(req.params.id);
-    console.log(path)
-    await database.deleteData(req.params.id);
-    res.send('Record deleted successfully From DB');
-    
-    // Delete file from file system
     await fs.promises.unlink(path);
     console.log("File Deleted")
 
@@ -183,7 +190,7 @@ watcher
   .on('unlink', async path => {
     console.log(`File ${path} has been removed`)
     const id = await database.getPathID(path)
-    database.deleteData(id)
+    await database.deleteData(id)
     let message = {
       type: 'delete',
       data : {

@@ -82,7 +82,35 @@ async function getData() {
     console.error(err);
   }
 }
+// Function to get the data today
+async function getDataToday(fileDate) {
+  try {
+    const getDataSql = `SELECT * FROM FILES WHERE FILEDATE = :1`;
+    const getDataRows = await execute(getDataSql,[fileDate]);
+    let jsonData = [];
 
+    for (let i = 0; i < getDataRows.rows.length; i++) {
+      let row = getDataRows.rows[i];
+    
+      // create a new object for each row with the desired fields
+      let newItem = {
+        path: row[0],
+        info: row[1],
+        id : row[2],
+        mobile: row[4],
+        fileType: row[5],
+        fileDate: row[6],
+        
+      };
+    
+      // add the new item to the JSON array
+      jsonData.push(newItem);
+    }
+    return jsonData;
+  } catch (err) {
+    console.error(err);
+  }
+}
 // Function to add data to the database
 async function addData(path, info = '', mobile = '', date = '', type = '') {
   try {
@@ -115,4 +143,4 @@ async function deleteData(id) {
   }
 }
 
-module.exports = { getPathFromID, getPathID, isDataInDataBase, getData, addData, updateData, deleteData };
+module.exports = { getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };
