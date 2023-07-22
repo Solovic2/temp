@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const oracledb = require('oracledb');
 const chokidar = require('chokidar');
+const bcrypt = require('bcrypt');
 const database = require('./db');
 const WebSocket = require('ws');
 var cors = require('cors')
@@ -92,6 +93,84 @@ readAndPutIntoDB()
 app.get('/', async (req, res) => {
     const data = await database.getData();
     res.json(data)
+});
+
+app.post('/register', async (req, res) => {
+  try{
+    const  info  = req.body.data;
+    let dataInfo = {};
+    const saltRounds = 10;
+    bcrypt.hash(info.password, saltRounds, async function(err, hash) {
+    // Store hash in database
+    dataInfo = {
+      username: info.username,
+      password: hash,
+    };
+    const data = await database.register(dataInfo);
+    if(data === 0){
+      res.sendStatus(404)
+    } 
+    else {
+      res.json(data)
+    }
+  });
+  
+  }
+  catch (error) {
+    console.error('Error updating database:', error);
+    res.sendStatus(500);
+  }
+  
+});
+app.post('/login', async (req, res) => {
+  try{
+    const  {username, password}  = req.body.data;
+  
+    const data = await database.login(username);
+    if(data){
+      const match = await bcrypt.compare(password, data);
+      if (match) {
+        
+        // Passwords match, redirect to dashboard
+        res.json("Ok")
+      } else {
+        // Passwords do not match, display error message
+         res.status(400).json({ error: 'كلمة السر غير صحيحة'});
+      }
+    } 
+    else {
+      res.status(400).json({ error: 'إسم المستخدم ليس موجوداً الرجاء تسجيل الدخول'});
+    }  
+  }
+  catch (error) {
+    console.error('Error updating database:', error);
+    res.sendStatus(500);
+  }
+  
+});
+app.post('/login', async (req, res) => {
+  const { username , password } = req.body;
+
+ 
+  // Check if email exists in database
+  // ...
+  
+
+  // Get hashed password from database
+  const hash = '...'; // get hash from database
+  const match = await bcrypt.compare(password, hash);
+
+  if (match) {
+    // Passwords match, redirect to dashboard
+    res.redirect('/dashboard');
+  } else {
+    // Passwords do not match, display error message
+    res.render('login', { error: 'Invalid email or password' });
+  }
+  console.log(dataInfo);
+  const data = await database.register(dataInfo);
+  res.json(data)
+
 });
 
 // create a route to get data today

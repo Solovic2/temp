@@ -21,6 +21,47 @@ async function execute(query, params) {
   }
 }
 
+// Function to register
+async function register(data) {
+  try {
+    // console.log(data.username);
+    const isUser = await getUser(data.username);
+    console.log(isUser + " ddd");
+    if(!isUser){
+      const insertSql = `INSERT INTO USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
+      const getRow  = await execute(insertSql, [data.username, data.password, "User", { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
+      console.log('User added to database ' );
+      return getRow.outBinds[0][0];
+    }else{
+      return 0;
+    }
+    
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Function to login
+async function login(username) {
+  try {
+    const getRowSql = `SELECT PASSWORD FROM USERS WHERE USERNAME = :1`;
+    const getRow = await execute(getRowSql, [username]);
+    return getRow.rows[0][0];
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Function to get path From ID 
+async function getUser(username) {
+  try {
+    const getRowSql = `SELECT ID FROM USERS WHERE USERNAME = :1`;
+    const getRow = await execute(getRowSql, [username]);
+    return getRow.rows[0][0];
+  } catch (err) {
+    console.error(err);
+  }
+}
 // Function to get path ID 
 async function getPathID(path) {
   try {
@@ -143,4 +184,4 @@ async function deleteData(id) {
   }
 }
 
-module.exports = { getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };
+module.exports = { register, login, getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };
