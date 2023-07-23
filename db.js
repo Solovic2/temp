@@ -44,9 +44,19 @@ async function register(data) {
 // Function to login
 async function login(username) {
   try {
-    const getRowSql = `SELECT PASSWORD FROM USERS WHERE USERNAME = :1`;
+    const getRowSql = `SELECT * FROM USERS WHERE USERNAME = :1`;
     const getRow = await execute(getRowSql, [username]);
-    return getRow.rows[0][0];
+    if(getRow.rows[0]){
+      const data = {
+        id : getRow.rows[0][0],
+        username:getRow.rows[0][1],
+        password: getRow.rows[0][2],
+        role: getRow.rows[0][3]
+      }
+      return data;
+    }
+    
+    return getRow.rows[0];
   } catch (err) {
     console.error(err);
   }
