@@ -187,6 +187,7 @@ app.post("/login", async (req, res) => {
     res.sendStatus(500);
   }
 });
+
 app.get('/logout',requireAuth, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -204,7 +205,7 @@ app.get("/" ,requireAuth,async (req, res) => {
 });
 
 // create a route to get data today
-app.get("/dateToday/:date", async (req, res) => {
+app.get("/dateToday/:date", requireAuth, async (req, res) => {
   try {
     const date = req.params.date;
     const data = await database.getDataToday(date);
@@ -216,7 +217,7 @@ app.get("/dateToday/:date", async (req, res) => {
 });
 
 // API For Get The File Text
-app.get("/file/:filePath", (req, res) => {
+app.get("/file/:filePath", requireAuth, (req, res) => {
   const filePath = folderPath + "\\" + req.params.filePath;
   console.log(req.params.filePath);
   fs.readFile(filePath, (err, data) => {
@@ -231,7 +232,7 @@ app.get("/file/:filePath", (req, res) => {
 });
 
 // API For Get The Audio File
-app.get("/audio/:filePath", (req, res) => {
+app.get("/audio/:filePath", requireAuth, (req, res) => {
   const filePath = folderPath + "\\" + req.params.filePath;
   fs.readFile(filePath, (err, data) => {
     if (err) {
@@ -244,7 +245,7 @@ app.get("/audio/:filePath", (req, res) => {
 });
 
 // API To Update The Database With The New Reply
-app.post("/update-complain/:id", async (req, res) => {
+app.post("/update-complain/:id", requireAuth, async (req, res) => {
   try {
     const id = req.params.id;
     const { info } = req.body;
@@ -256,7 +257,7 @@ app.post("/update-complain/:id", async (req, res) => {
   }
 });
 // API For Delete The Shakwa
-app.delete("/delete-complain/:id", async (req, res) => {
+app.delete("/delete-complain/:id", requireAuth, async (req, res) => {
   try {
     const path = await database.getPathFromID(req.params.id);
     await fs.promises.unlink(path);
