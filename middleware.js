@@ -13,11 +13,11 @@ const requireAuth = async (req, res, next) => {
           return next();
         } else {
           // User is not authenticated, return unauthorized response
-          return res.redirect('http://localhost:3000/');
+          return res.status(401).json({ error: "Unauthorized" });
         }
     }else {
         // User is not authenticated, return unauthorized response
-        return res.redirect('http://localhost:3000/');
+        return res.status(401).json({ error: "User not found" });
       }
     
   };

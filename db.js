@@ -98,20 +98,21 @@ async function getAllUsers() {
     const getRowSql = `SELECT * FROM USERS`;
     const getRow = await execute(getRowSql, []);
     let jsonData = [];
-
-    for (let i = 0; i < getRow.rows.length; i++) {
-      let row = getRow.rows[i];
-
-      // create a new object for each row with the desired fields
-      let newItem = {
-        id: row[0],
-        username: row[1],
-        role: row[3],
-      };
-
-      // add the new item to the JSON array
-      jsonData.push(newItem);
+    if (getRow.rows.length > 0) {
+      for (let i = 0; i < getRow.rows.length; i++) {
+        let row = getRow.rows[i];
+    
+        // create a new object for each row with the desired fields
+        let newItem = {
+          id: row[0],
+          username: row[1],
+          role: row[3],
+        };
+        // add the new item to the JSON array
+        jsonData.push(newItem);
+      }
     }
+    
     return jsonData;
   } catch (err) {
     console.error(err);

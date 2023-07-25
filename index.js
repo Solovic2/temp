@@ -1,20 +1,20 @@
 const express = require("express");
 const fs = require("fs");
-const oracledb = require("oracledb");
 const chokidar = require("chokidar");
 const bcrypt = require("bcrypt");
 const database = require("./db");
 const WebSocket = require("ws");
 var cors = require("cors");
-const crypto = require('crypto');
 const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
 const  { requireAuth, isAdmin } = require("./middleware");
 app.use(express.json());
+
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
+
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
