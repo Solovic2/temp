@@ -4,7 +4,7 @@ const oracledb = require('oracledb');
 const dbConfig = {
   user: 'complain',
   password: '123',
-  connectString: '62.117.51.155:1521/xe',
+  connectString: '62.117.51.154:1521/xe',
 };
 
 async function execute(query, params) {
@@ -25,7 +25,7 @@ async function execute(query, params) {
 async function register(data) {
   try {
     // console.log(data.username);
-    const isUser = await getUser(data.username);
+    const isUser = await getUserName(data.username);
     console.log(isUser + " ddd");
     if(!isUser){
       const insertSql = `INSERT INTO USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
@@ -62,8 +62,8 @@ async function login(username) {
   }
 }
 
-// Function to get path From ID 
-async function getUser(username) {
+// Function to get UserName
+async function getUserName(username) {
   try {
     const getRowSql = `SELECT ID FROM USERS WHERE USERNAME = :1`;
     const getRow = await execute(getRowSql, [username]);
@@ -72,6 +72,85 @@ async function getUser(username) {
     console.error(err);
   }
 }
+// Function to get User By UserID
+async function getUser(id) {
+  try {
+    const getRowSql = `SELECT * FROM USERS WHERE ID = :1`;
+    const getRow = await execute(getRowSql, [id]);
+    if (getRow.rows[0]) {
+      const data = {
+        id: getRow.rows[0][0],
+        username: getRow.rows[0][1],
+        role: getRow.rows[0][3]
+      }
+      return data;
+    }
+
+    return getRow.rows[0];
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+// Function to All Users 
+async function getAllUsers() {
+  try {
+    const getRowSql = `SELECT * FROM USERS`;
+    const getRow = await execute(getRowSql, []);
+    let jsonData = [];
+
+    for (let i = 0; i < getRow.rows.length; i++) {
+      let row = getRow.rows[i];
+
+      // create a new object for each row with the desired fields
+      let newItem = {
+        id: row[0],
+        username: row[1],
+        role: row[3],
+      };
+
+      // add the new item to the JSON array
+      jsonData.push(newItem);
+    }
+    return jsonData;
+  } catch (err) {
+    console.error(err);
+  }
+}
+// Function to add data to the database
+async function addUser(data) {
+  try {
+    const {username, password, role} = data;
+    const insertSql = `INSERT INTO USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
+    const getRow  = await execute(insertSql, [username, password, role, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
+    console.log('User added to database');
+    return getRow.outBinds[0][0];
+  } catch (err) {
+    console.error(err);
+  }
+}
+// Function to Update User
+async function updateUser(info, id) {
+  try {
+    const updateSql = `UPDATE USERS SET USERNAME = :1, ROLE = :2 WHERE id = :3`;
+    const updateRow = await execute(updateSql, [info[0], info[1], id]);
+    console.log('UserData updated in database');
+  } catch (err) {
+    console.error(err);
+  }
+}
+// Function to Delete User
+async function deleteUser(id) {
+  try {
+    const deleteSql = `DELETE FROM USERS WHERE ID = :1`;
+    const deleteRow = await execute(deleteSql, [id]);
+    console.log('Data deleted from database' + deleteRow.rowsAffected);
+    return deleteRow.rowsAffected;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 // Function to get path ID 
 async function getPathID(path) {
   try {
@@ -194,4 +273,4 @@ async function deleteData(id) {
   }
 }
 
-module.exports = { register, login, getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };
+module.exports = { register, login, getAllUsers, getUser, getUserName,addUser,  updateUser, deleteUser, getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };

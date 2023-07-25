@@ -9,12 +9,19 @@ var cors = require("cors");
 const crypto = require('crypto');
 const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
+const  { requireAuth, isAdmin } = require("./middleware");
 app.use(express.json());
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
-
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 // Sessions
 const session = require("express-session");
 const cookieParser = require("cookie-parser");
@@ -35,17 +42,7 @@ app.use(
     }),
   })
 );
-// MiddleWare
-const requireAuth = (req, res, next) => {
-  console.log(req.session);
-  if (req.session && req.session.user && req.session.user.loggedIn === true) {
-    // User is authenticated, proceed to next middleware
-    return next();
-  } else {
-    // User is not authenticated, return unauthorized response
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-};
+
 
 // WebSocket for notification
 const wss = new WebSocket.Server({ port: 8000 });
@@ -310,6 +307,68 @@ watcher
     });
   })
   .on("error", (error) => console.log(`Watcher error: ${error}`));
+
+
+// Admin Panel
+app.get("/admin/users" ,isAdmin, async (req, res) => {
+  const data = await database.getAllUsers();
+  console.log(data);
+  res.json(data);
+});
+app.post("/admin/addUser", isAdmin, async (req, res) => {
+  try {
+    const { username, password , role } = req.body.data;
+    bcrypt.hash(password, 10, async function (err, hash) {
+      // Store hash in database
+      dataInfo = {
+        username: username,
+        password: hash,
+        role: role,
+      };
+      const data = await database.addUser(dataInfo);
+
+      if (data === 0) {
+        res.sendStatus(404);
+      } else {
+        const userData = {
+          id : data,
+          username: username,
+          role: role,
+        }
+        res.json(userData);
+      }
+    });
+  } catch (error) {
+    console.error("Error updating database:", error);
+    res.sendStatus(500);
+  }
+  
+});
+app.get("/admin/edit/:id" ,async (req, res) => {
+  const id = req.params.id;
+  const data = await database.getUser(id);
+  res.json(data);
+});
+app.delete("/admin-delete/:id",  async (req, res) => {
+  try {
+    const deleteUser = await database.deleteUser(req.params.id);
+    res.json(deleteUser);
+  } catch (error) {
+    console.error("Error deleting card:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+app.post("/admin/update/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { info } = req.body;
+    await database.updateUser(info, id);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error updating database:", error);
+    res.sendStatus(500);
+  }
+});
 // start the server
 app.listen(9000, () => {
   console.log("Server started on port 9000");
