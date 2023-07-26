@@ -22,14 +22,24 @@ const requireAuth = async (req, res, next) => {
     
   };
   
-  const isAdmin = (req, res, next) => {
+  const isAdmin = async (req, res, next) => {
     console.log(req.session);
-    if (req.session && req.session.user && req.session.user.data.role === 'Admin') {
-      // User is authenticated, proceed to next middleware
-      return next();
-    } else {
-      // User is not authenticated, return unauthorized response
-      return res.status(401).json({ error: "Unauthorized" });
+    const userSession = req.session.user;
+    if(req.session && userSession){
+        const user = await database.getUser(userSession.data.id);
+
+        if (userSession.loggedIn === true 
+            && user && user.role === userSession.data.role && user.role === 'Admin'
+            ) {
+          // User is authenticated, proceed to next middleware
+          return next();
+        } else {
+          // User is not authenticated, return unauthorized response
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+    }else {
+        // User is not authenticated, return unauthorized response
+        return res.status(401).json({ error: "User not found" });
     }
   };
 

@@ -326,9 +326,8 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
         role: role,
       };
       const data = await database.addUser(dataInfo);
-
       if (data === 0) {
-        res.sendStatus(404);
+        res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
       } else {
         const userData = {
           id : data,

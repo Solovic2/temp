@@ -4,7 +4,7 @@ const oracledb = require('oracledb');
 const dbConfig = {
   user: 'complain',
   password: '123',
-  connectString: '62.117.51.154:1521/xe',
+  connectString: 'localhost:1521/xe',
 };
 
 async function execute(query, params) {
@@ -75,6 +75,7 @@ async function getUserName(username) {
 // Function to get User By UserID
 async function getUser(id) {
   try {
+    
     const getRowSql = `SELECT * FROM USERS WHERE ID = :1`;
     const getRow = await execute(getRowSql, [id]);
     if (getRow.rows[0]) {
@@ -121,11 +122,17 @@ async function getAllUsers() {
 // Function to add data to the database
 async function addUser(data) {
   try {
-    const {username, password, role} = data;
-    const insertSql = `INSERT INTO USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
-    const getRow  = await execute(insertSql, [username, password, role, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
-    console.log('User added to database');
-    return getRow.outBinds[0][0];
+    const isUser = await getUserName(data.username);
+    if(!isUser){
+      const {username, password, role} = data;
+      const insertSql = `INSERT INTO USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
+      const getRow  = await execute(insertSql, [username, password, role, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
+      console.log(getR);
+      console.log('User added to database');
+      return getRow.outBinds[0][0];
+    }else{
+      return 0;
+    }
   } catch (err) {
     console.error(err);
   }
