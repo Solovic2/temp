@@ -348,7 +348,7 @@ app.get("/admin/edit/:id" ,async (req, res) => {
   const data = await database.getUser(id);
   res.json(data);
 });
-app.delete("/admin-delete/:id",  async (req, res) => {
+app.delete("/admin-delete/:id", isAdmin,  async (req, res) => {
   try {
     const deleteUser = await database.deleteUser(req.params.id);
     res.json(deleteUser);
