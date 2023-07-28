@@ -343,10 +343,46 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
   }
   
 });
-app.get("/admin/edit/:id" ,async (req, res) => {
+app.get("/admin/edit/:id" , isAdmin, async (req, res) => {
   const id = req.params.id;
   const data = await database.getUser(id);
   res.json(data);
+});
+app.post("/admin/update/:id", isAdmin,  async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { username, password , role } = req.body.data;
+    let hashPassword = password
+    console.log("password?" + password);
+    if(password !== ''){
+      bcrypt.hash(password, 10, async function (err, hash) {
+        hashPassword = hash
+        const data = [
+          username,
+          hashPassword,
+          role,
+       ]
+
+       await database.updateUser(data, id);
+       console.log('User Updated With New Password!')
+       res.sendStatus(200);
+      });
+    }else{
+      const data = [
+        username,
+        hashPassword,
+        role,
+     ]
+     await database.updateUser(data, id);
+     console.log('User Updated With Same Password!')
+     res.sendStatus(200);
+
+    }
+    
+  } catch (error) {
+    console.error("Error updating database:", error);
+    res.sendStatus(500);
+  }
 });
 app.delete("/admin-delete/:id", isAdmin,  async (req, res) => {
   try {
@@ -357,17 +393,7 @@ app.delete("/admin-delete/:id", isAdmin,  async (req, res) => {
     res.status(500).send("Internal server error");
   }
 });
-app.post("/admin/update/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { info } = req.body;
-    await database.updateUser(info, id);
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("Error updating database:", error);
-    res.sendStatus(500);
-  }
-});
+
 // start the server
 app.listen(9000, () => {
   console.log("Server started on port 9000");

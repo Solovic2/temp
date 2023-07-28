@@ -1,5 +1,4 @@
 const oracledb = require('oracledb');
-
 // Define the database configuration parameters
 const dbConfig = {
   user: 'complain',
@@ -138,10 +137,16 @@ async function addUser(data) {
   }
 }
 // Function to Update User
-async function updateUser(info, id) {
+async function updateUser(data, id) {
   try {
-    const updateSql = `UPDATE USERS SET USERNAME = :1, ROLE = :2 WHERE id = :3`;
-    const updateRow = await execute(updateSql, [info[0], info[1], id]);
+
+    let updateSql = `UPDATE USERS SET USERNAME = :1, ROLE = :2 WHERE ID = :3`;
+    let params = [data[0], data[2],id]; 
+    if(data[1] !== ''){
+      updateSql = `UPDATE USERS SET USERNAME = :1, PASSWORD = :2, ROLE = :3 WHERE ID = :4`;
+      params = [data[0], data[1], data[2], id]; 
+    }
+    const updateRow = await execute(updateSql, params);
     console.log('UserData updated in database');
   } catch (err) {
     console.error(err);
