@@ -149,7 +149,7 @@ async function updateUser(data, id) {
     const updateRow = await execute(updateSql, params);
     console.log('UserData updated in database');
   } catch (err) {
-    console.error(err);
+    res.status(400).json({ error: "This user already exists" });
   }
 }
 // Function to Delete User

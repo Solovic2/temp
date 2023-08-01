@@ -363,7 +363,11 @@ app.post("/admin/update/:id", isAdmin,  async (req, res) => {
           role,
        ]
 
-       await database.updateUser(data, id);
+       try{
+        await database.updateUser(data, id);
+       }catch(error){
+        res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
+       }
        console.log('User Updated With New Password!')
        res.sendStatus(200);
       });
@@ -373,10 +377,15 @@ app.post("/admin/update/:id", isAdmin,  async (req, res) => {
         hashPassword,
         role,
      ]
-     await database.updateUser(data, id);
-     console.log('User Updated With Same Password!')
+     try{
+      await database.updateUser(data, id);
+      console.log('User Updated With Same Password!')
      res.sendStatus(200);
 
+     }catch(error){
+      res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
+     }
+     
     }
     
   } catch (error) {
