@@ -4,17 +4,19 @@ const chokidar = require("chokidar");
 const bcrypt = require("bcrypt");
 const database = require("./db");
 const WebSocket = require("ws");
-var cors = require("cors");
 const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
+const cookieParser = require('cookie-parser');
 const  { requireAuth, isAdmin } = require("./middleware");
-app.use(express.json());
+var cors = require("cors");
 
+
+app.use(express.json());
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
-
+app.use(cookieParser());
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
@@ -22,27 +24,6 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   next();
 });
-// Sessions
-const session = require("express-session");
-const cookieParser = require("cookie-parser");
-const MemoryStore = require('memorystore')(session);
-app.use(cookieParser());
-app.use(
-  session({
-    secret: 'defaultsecret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 3600000, // 1 hour
-      secure: false, // set to true if using HTTPS
-      httpOnly: true,
-    },
-    store: new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    }),
-  })
-);
-
 
 // WebSocket for notification
 const wss = new WebSocket.Server({ port: 8000 });
@@ -140,12 +121,11 @@ app.post("/register", async (req, res) => {
       if (data === 0) {
         res.sendStatus(404);
       } else {
-        req.session.user = {
+        const user = {
           data: data,
           loggedIn: true,
         };
-        req.session.save();
-        res.json(req.session.user);
+        res.json(user);
       }
     });
   } catch (error) {
@@ -163,12 +143,11 @@ app.post("/login", async (req, res) => {
       const match = await bcrypt.compare(password, data.password);
       if (match) {
         // Passwords match
-        req.session.user = {
+       const user = {
           data: data,
           loggedIn: true,
         };
-        req.session.save();
-        res.json(req.session.user);
+        res.json(user);
         
       } else {
         // Passwords do not match, display error message

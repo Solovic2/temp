@@ -1,11 +1,11 @@
 // MiddleWare
 const database = require('./db')
 const requireAuth = async (req, res, next) => {
-    const userSession = req.session.user;
-    if(req.session && userSession){
+  console.log(req.cookies);
+    const { user } = req.cookies;
+    const userSession = user ? JSON.parse(user) : false;
+    if(userSession){
         const user = await database.getUser(userSession.data.id);
-        console.log(user);
-        // console.log(user);
         if (userSession.loggedIn === true 
             && user && user.role === userSession.data.role
             ) {
@@ -23,11 +23,11 @@ const requireAuth = async (req, res, next) => {
   };
   
   const isAdmin = async (req, res, next) => {
-    console.log(req.session);
-    const userSession = req.session.user;
-    if(req.session && userSession){
+    console.log(req.cookies);
+    const { user } = req.cookies;
+    const userSession = user ? JSON.parse(user) : false;
+    if(userSession){
         const user = await database.getUser(userSession.data.id);
-
         if (userSession.loggedIn === true 
             && user && user.role === userSession.data.role && user.role === 'Admin'
             ) {
