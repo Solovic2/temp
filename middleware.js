@@ -1,11 +1,12 @@
 // MiddleWare
 const database = require('./db')
+const userModel = require('./Models/User')
 const requireAuth = async (req, res, next) => {
   console.log(req.cookies);
     const { user } = req.cookies;
     const userSession = user ? JSON.parse(user) : false;
     if(userSession){
-        const user = await database.getUser(userSession.data.id);
+        const user = await userModel.getUser(userSession.data.id);
         if (userSession.loggedIn === true 
             && user && user.role === userSession.data.role
             ) {
@@ -27,7 +28,7 @@ const requireAuth = async (req, res, next) => {
     const { user } = req.cookies;
     const userSession = user ? JSON.parse(user) : false;
     if(userSession){
-        const user = await database.getUser(userSession.data.id);
+        const user = await userModel.getUser(userSession.data.id);
         if (userSession.loggedIn === true 
             && user && user.role === userSession.data.role && user.role === 'Admin'
             ) {

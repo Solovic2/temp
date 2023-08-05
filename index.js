@@ -1,9 +1,11 @@
 const express = require("express");
 const fs = require("fs");
+const WebSocket = require("ws");
 const chokidar = require("chokidar");
 const bcrypt = require("bcrypt");
-const database = require("./db");
-const WebSocket = require("ws");
+const userModel = require("./Models/User");
+const registerationModel = require('./Models/Registration')
+const fileModel = require('./Models/File')
 const folderPath = "C:\\Users\\islam\\Desktop\\temp";
 const app = express();
 const cookieParser = require('cookie-parser');
@@ -88,9 +90,9 @@ function readAndPutIntoDB() {
     .then(async (sortedFiles) => {
       console.log(sortedFiles);
       for (let i = 0; i < sortedFiles.length; i++) {
-        if (!(await database.isDataInDataBase(sortedFiles[i].path))) {
+        if (!(await fileModel.isDataInDataBase(sortedFiles[i].path))) {
           const data = splitPath(sortedFiles[i].path);
-          await database.addData(
+          await fileModel.addData(
             sortedFiles[i].path,
             "",
             data[0],
@@ -117,7 +119,7 @@ app.post("/register", async (req, res) => {
         username: info.username,
         password: hash,
       };
-      const data = await database.register(dataInfo);
+      const data = await registerationModel.register(dataInfo);
       if (data === 0) {
         res.sendStatus(404);
       } else {
@@ -138,7 +140,7 @@ app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body.data;
 
-    const data = await database.login(username);
+    const data = await registerationModel.login(username);
     if (data) {
       const match = await bcrypt.compare(password, data.password);
       if (match) {
@@ -176,7 +178,7 @@ app.get('/logout',requireAuth, (req, res) => {
 });
 // create a route to get data from the database
 app.get("/" ,requireAuth,async (req, res) => {
-  const data = await database.getData();
+  const data = await fileModel.getData();
   res.json(data);
 });
 
@@ -184,7 +186,7 @@ app.get("/" ,requireAuth,async (req, res) => {
 app.get("/dateToday/:date", requireAuth, async (req, res) => {
   try {
     const date = req.params.date;
-    const data = await database.getDataToday(date);
+    const data = await fileModel.getDataToday(date);
     res.json(data);
   } catch (error) {
     console.error("Error updating database:", error);
@@ -225,7 +227,7 @@ app.post("/update-complain/:id", requireAuth, async (req, res) => {
   try {
     const id = req.params.id;
     const { info } = req.body;
-    await database.updateData(info, id);
+    await fileModel.updateData(info, id);
     res.sendStatus(200);
   } catch (error) {
     console.error("Error updating database:", error);
@@ -235,7 +237,7 @@ app.post("/update-complain/:id", requireAuth, async (req, res) => {
 // API For Delete The Shakwa
 app.delete("/delete-complain/:id", requireAuth, async (req, res) => {
   try {
-    const path = await database.getPathFromID(req.params.id);
+    const path = await fileModel.getPathFromID(req.params.id);
     await fs.promises.unlink(path);
     console.log("File Deleted");
   } catch (error) {
@@ -254,7 +256,7 @@ watcher
     console.log(`File ${path} has been added`);
     const data = splitPath(path);
     console.log(data);
-    const result = await database.addData(path, "", data[0], data[1], data[2]);
+    const result = await fileModel.addData(path, "", data[0], data[1], data[2]);
     let item = {
       type: "add",
       data: {
@@ -273,8 +275,8 @@ watcher
   })
   .on("unlink", async (path) => {
     console.log(`File ${path} has been removed`);
-    const id = await database.getPathID(path);
-    await database.deleteData(id);
+    const id = await fileModel.getPathID(path);
+    await fileModel.deleteData(id);
     let message = {
       type: "delete",
       data: {
@@ -290,7 +292,7 @@ watcher
 
 // Admin Panel
 app.get("/admin/users" ,isAdmin, async (req, res) => {
-  const data = await database.getAllUsers();
+  const data = await userModel.getAllUsers();
   console.log(data);
   res.json(data);
 });
@@ -304,7 +306,7 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
         password: hash,
         role: role,
       };
-      const data = await database.addUser(dataInfo);
+      const data = await userModel.addUser(dataInfo);
       if (data === 0) {
         res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
       } else {
@@ -324,7 +326,7 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
 });
 app.get("/admin/edit/:id" , isAdmin, async (req, res) => {
   const id = req.params.id;
-  const data = await database.getUser(id);
+  const data = await userModel.getUser(id);
   res.json(data);
 });
 app.post("/admin/update/:id", isAdmin,  async (req, res) => {
@@ -343,7 +345,7 @@ app.post("/admin/update/:id", isAdmin,  async (req, res) => {
        ]
 
        try{
-        await database.updateUser(data, id);
+        await userModel.updateUser(data, id);
        }catch(error){
         res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
        }
@@ -357,7 +359,7 @@ app.post("/admin/update/:id", isAdmin,  async (req, res) => {
         role,
      ]
      try{
-      await database.updateUser(data, id);
+      await userModel.updateUser(data, id);
       console.log('User Updated With Same Password!')
      res.sendStatus(200);
 
@@ -374,7 +376,7 @@ app.post("/admin/update/:id", isAdmin,  async (req, res) => {
 });
 app.delete("/admin-delete/:id", isAdmin,  async (req, res) => {
   try {
-    const deleteUser = await database.deleteUser(req.params.id);
+    const deleteUser = await userModel.deleteUser(req.params.id);
     res.json(deleteUser);
   } catch (error) {
     console.error("Error deleting card:", error);
