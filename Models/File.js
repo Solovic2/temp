@@ -4,7 +4,7 @@ const database = require("../db");
 // Function to get path ID 
 async function getPathID(path) {
     try {
-      const getRowSql = `SELECT ID FROM FILES WHERE PATH = :1`;
+      const getRowSql = `SELECT ID FROM COMPLAINS_FILES WHERE PATH = :1`;
       const getRow = await database.execute(getRowSql, [path]);
       return getRow.rows[0][0];
     } catch (err) {
@@ -15,7 +15,7 @@ async function getPathID(path) {
   // Function to get path From ID 
   async function getPathFromID(id) {
     try {
-      const getRowSql = `SELECT PATH FROM FILES WHERE ID = :1`;
+      const getRowSql = `SELECT PATH FROM COMPLAINS_FILES WHERE ID = :1`;
       const getRow = await database.execute(getRowSql, [id]);
       return getRow.rows[0][0];
     } catch (err) {
@@ -25,7 +25,7 @@ async function getPathID(path) {
   // Function to check if the path is already in database
   async function isDataInDataBase(path) {
     try {
-      const getRowSql = `SELECT COUNT(PATH) FROM FILES WHERE PATH = :1`;
+      const getRowSql = `SELECT COUNT(PATH) FROM COMPLAINS_FILES WHERE PATH = :1`;
       const getRow = await database.execute(getRowSql, [path]);
       return getRow.rows[0] > 0;
     } catch (err) {
@@ -36,7 +36,7 @@ async function getPathID(path) {
   // Function to get the data from database
   async function getData() {
     try {
-      const getDataSql = `SELECT * FROM FILES`;
+      const getDataSql = `SELECT * FROM COMPLAINS_FILES`;
       const getDataRows = await database.execute(getDataSql,[]);
       let jsonData = [];
   
@@ -65,7 +65,7 @@ async function getPathID(path) {
   // Function to get the data today
   async function getDataToday(fileDate) {
     try {
-      const getDataSql = `SELECT * FROM FILES WHERE FILEDATE = :1`;
+      const getDataSql = `SELECT * FROM COMPLAINS_FILES WHERE FILEDATE = :1`;
       const getDataRows = await database.execute(getDataSql,[fileDate]);
       let jsonData = [];
   
@@ -94,7 +94,7 @@ async function getPathID(path) {
   // Function to add data to the database
   async function addData(path, info = '', mobile = '', date = '', type = '') {
     try {
-      const insertSql = `INSERT INTO FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5) RETURNING id INTO :output_id`;
+      const insertSql = `INSERT INTO COMPLAINS_FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5) RETURNING id INTO :output_id`;
       const getRow  = await database.execute(insertSql, [path, info, mobile, date, type, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
       console.log('Data added to database ' + path);
       return getRow.outBinds[0][0];
@@ -105,7 +105,7 @@ async function getPathID(path) {
   // Function to update data in the database
   async function updateData(info, id) {
     try {
-      const updateSql = `UPDATE FILES SET INFO = :1 WHERE ID = :2`;
+      const updateSql = `UPDATE COMPLAINS_FILES SET INFO = :1 WHERE ID = :2`;
       const updateRow= await database.execute(updateSql, [info, id]);
       console.log('Data updated in database');
     } catch (err) {
@@ -115,7 +115,7 @@ async function getPathID(path) {
   // Function to delete data from the database
   async function deleteData(id) {
     try{
-      const deleteSql = `DELETE FROM FILES WHERE ID = :1`;
+      const deleteSql = `DELETE FROM COMPLAINS_FILES WHERE ID = :1`;
       const deleteRow = await database.execute(deleteSql, [id]);
       console.log('Data deleted from database');
     } catch (err) {

@@ -1,7 +1,7 @@
 const oracledb = require('oracledb');
 // Define the database configuration parameters
 const dbConfig = {
-  user: 'complain',
+  user: 'complains',
   password: '123',
   connectString: 'localhost:1521/xe',
 };

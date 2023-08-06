@@ -21,7 +21,7 @@ async function register(data) {
   // Function to login
   async function login(username) {
     try {
-      const getRowSql = `SELECT * FROM USERS WHERE USERNAME = :1`;
+      const getRowSql = `SELECT * FROM COMPLAINS_USERS WHERE USERNAME = :1`;
       const getRow = await database.execute(getRowSql, [username]);
       if(getRow.rows[0]){
         const data = {
