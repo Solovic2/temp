@@ -23,16 +23,40 @@ async function getPathID(path) {
     }
   }
   // Function to check if the path is already in database
-  async function isDataInDataBase(path) {
+  async function isDisabledFile(path) {
     try {
-      const getRowSql = `SELECT COUNT(PATH) FROM COMPLAINS_FILES WHERE PATH = :1`;
+      
+      const getRowSql = `SELECT INFO, FLAG FROM COMPLAINS_FILES WHERE PATH = :1`;
+      const getRow = await database.execute(getRowSql, [path]);
+      
+      if(getRow.rows[0]){
+        const data = {
+          info: getRow.rows[0][0],
+          flag: getRow.rows[0][1]
+        }
+        return data;
+      }
+
+      const data = {
+        info: '',
+        flag: 0
+      }
+      return data;
+      
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  async function isFileInDB(path) {
+    try {
+
+      const getRowSql = `SELECT COUNT(PATH) FROM COMPLAINS_FILES WHERE (PATH = :1)`;
       const getRow = await database.execute(getRowSql, [path]);
       return getRow.rows[0] > 0;
     } catch (err) {
       console.error(err);
     }
   }
-  
   // Function to get the data from database
   async function getData() {
     try {
@@ -92,10 +116,10 @@ async function getPathID(path) {
     }
   }
   // Function to add data to the database
-  async function addData(path, info = '', mobile = '', date = '', type = '') {
+  async function addData(path, info = '', flag = 1) {
     try {
-      const insertSql = `INSERT INTO COMPLAINS_FILES (PATH, INFO, MOBILE, FILEDATE, FILETYPE) VALUES (:1, :2, :3, :4, :5) RETURNING id INTO :output_id`;
-      const getRow  = await database.execute(insertSql, [path, info, mobile, date, type, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
+      const insertSql = `INSERT INTO COMPLAINS_FILES (PATH, INFO, FLAG) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
+      const getRow  = await database.execute(insertSql, [path, info, flag, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
       console.log('Data added to database ' + path);
       return getRow.outBinds[0][0];
     } catch (err) {
@@ -103,25 +127,43 @@ async function getPathID(path) {
     }
   }
   // Function to update data in the database
-  async function updateData(info, id) {
+  async function updateData(info, path) {
     try {
-      const updateSql = `UPDATE COMPLAINS_FILES SET INFO = :1 WHERE ID = :2`;
-      const updateRow= await database.execute(updateSql, [info, id]);
+      const updateSql = `UPDATE COMPLAINS_FILES SET INFO = :1 WHERE PATH = :2`;
+      const updateRow= await database.execute(updateSql, [info, path]);
+      console.log('Data updated in database');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function updateFlag(flag, path) {
+    try {
+      const updateSql = `UPDATE COMPLAINS_FILES SET FLAG = :1 WHERE PATH = :2`;
+      const updateRow = await database.execute(updateSql, [flag, path]);
       console.log('Data updated in database');
     } catch (err) {
       console.error(err);
     }
   }
   // Function to delete data from the database
-  async function deleteData(id) {
+  async function deleteData(path) {
     try{
-      const deleteSql = `DELETE FROM COMPLAINS_FILES WHERE ID = :1`;
-      const deleteRow = await database.execute(deleteSql, [id]);
+      const deleteSql = `DELETE FROM COMPLAINS_FILES WHERE PATH = :1`;
+      const deleteRow = await database.execute(deleteSql, [path]);
       console.log('Data deleted from database');
     } catch (err) {
       console.error(err);
     }
   }
+  async function deleteAllData() {
+    try{
+      const deleteSql = `TRUNCATE TABLE COMPLAINS_FILES`;
+      const deleteRow = await database.execute(deleteSql,[]);
+      console.log('All Data deleted from database');
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-
-  module.exports = { getPathFromID, getPathID, isDataInDataBase, getData, getDataToday, addData, updateData, deleteData };
+  module.exports = { getPathFromID, getPathID, isDisabledFile,isFileInDB,updateFlag, getData, getDataToday, addData, updateData, deleteData, deleteAllData };

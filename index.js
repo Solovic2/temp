@@ -1,26 +1,29 @@
 const express = require("express");
 const fs = require("fs");
+require('dotenv').config();
 const WebSocket = require("ws");
 const chokidar = require("chokidar");
 const bcrypt = require("bcrypt");
 const userModel = require("./Models/User");
 const registerationModel = require('./Models/Registration')
 const fileModel = require('./Models/File')
-const folderPath = "C:\\Users\\islam\\Desktop\\temp";
+const folderPath = process.env.FOLDER_PATH;
+let fullPath = folderPath;
+const pathFolders = require('path')
 const app = express();
 const cookieParser = require('cookie-parser');
-const  { requireAuth, isAdmin } = require("./middleware");
+const { requireAuth, isAdmin } = require("./middleware");
 var cors = require("cors");
 
 
 app.use(express.json());
 app.use(cors({
-  origin: 'http://128.36.1.71:3000',
+  origin: 'http://localhost:3000',
   credentials: true
 }));
 app.use(cookieParser());
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://128.36.1.71:3000');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -33,6 +36,104 @@ wss.on("connection", (ws) => {
   console.log("WebSocket connected");
 });
 
+function getAllFolders(directory) {
+  const folders = [];
+  const files = fs.readdirSync(directory);
+
+  files.forEach((file) => {
+    const filePath = directory + "\\" + file;
+    const stat = fs.statSync(filePath);
+
+    if (stat.isDirectory()) {
+      folders.push(file);
+      // folders.push(...getAllFolders(filePath)); // Recursively get folders inside subdirectories
+    }
+  });
+
+  return folders;
+}
+
+const allFoldersYears = getAllFolders(folderPath);
+const allFoldersMonths = getAllFolders(folderPath + "\\" + allFoldersYears[0]);
+
+// Watch Years Folders...
+const watchYears = chokidar.watch(folderPath, {
+  persistent: true,
+  ignoreInitial: true,
+  usePolling: true
+});
+watchYears
+  .on("addDir", (path) => {
+    console.log(`Folder ${path} has been added`);
+    const allFoldersYears = getAllFolders(folderPath);
+    let item = {
+      type: "addYearFolder",
+      data: allFoldersYears,
+    };
+    const message = JSON.stringify(item);
+    wss.clients.forEach((client) => {
+      client.send(message);
+    });
+  })
+  .on("unlinkDir", (path) => {
+    console.log(`Folder ${path} has been removed`);
+    const allFoldersYears = getAllFolders(folderPath);
+    let message = {
+      type: "deleteYearFolder",
+      data: allFoldersYears,
+    };
+    wss.clients.forEach((client) => {
+      client.send(JSON.stringify(message));
+    });
+  })
+  .on("error", (error) => console.log(`Watcher error: ${error}`));
+
+// Watch Months Folder...
+function watchMonthFolder(monthsFolder) {
+  const watchMonths = chokidar.watch(monthsFolder, {
+    persistent: true,
+    ignoreInitial: true,
+    usePolling: true
+  });
+  watchMonths
+    .on("addDir", async (path) => {
+      console.log(`Folder ${path} has been added`);
+      const allFoldersMonths = getAllFolders(folderPath + "\\" + allFolders[0]);
+      let item = {
+        type: "addMonthFolder",
+        data: allFoldersMonths,
+      };
+      const message = JSON.stringify(item);
+      wss.clients.forEach((client) => {
+        client.send(message);
+      });
+    })
+    .on("unlinkDir", async (path) => {
+      console.log(`File ${path} has been removed`);
+      const allFoldersMonths = getAllFolders(folderPath + "\\" + allFolders[0]);
+      let message = {
+        type: "deleteMonthFolder",
+        data: allFoldersMonths,
+      };
+      wss.clients.forEach((client) => {
+        client.send(JSON.stringify(message));
+      });
+    })
+    .on("error", (error) => console.log(`Watcher error: ${error}`));
+
+}
+
+app.get("/year-folders", requireAuth, (req, res) => {
+  const allFoldersYears = getAllFolders(folderPath);
+  res.json(allFoldersYears);
+});
+
+app.get("/year-month-folders/:year", requireAuth, (req, res) => {
+  console.log(req.params.year);
+  const yearFolder = req.params.year;
+  const allFoldersMonths = getAllFolders(folderPath + "\\" + yearFolder);
+  res.json(allFoldersMonths);
+});
 // Split The Path
 // element will be phoneNumber-day-month-year.[txt/wav]
 // info => [phoneNumber or '', day-month-year, txt or wav]
@@ -57,10 +158,12 @@ function getSortedFilesByLastModifiedTime(directoryPath) {
   return new Promise((resolve, reject) => {
     fs.readdir(directoryPath, (err, files) => {
       if (err) {
+
         reject(err);
       } else {
         const filesWithTime = [];
         let count = files.length;
+        if (count === 0) resolve(files)
         files.forEach((file) => {
           const filePath = directoryPath + "\\" + file;
           fs.stat(filePath, (err, stats) => {
@@ -85,29 +188,47 @@ function getSortedFilesByLastModifiedTime(directoryPath) {
   });
 }
 // Read And Put Into Database
-function readAndPutIntoDB() {
-  getSortedFilesByLastModifiedTime(folderPath)
-    .then(async (sortedFiles) => {
-      console.log(sortedFiles);
-      for (let i = 0; i < sortedFiles.length; i++) {
-        if (!(await fileModel.isDataInDataBase(sortedFiles[i].path))) {
-          const data = splitPath(sortedFiles[i].path);
-          await fileModel.addData(
-            sortedFiles[i].path,
-            "",
-            data[0],
-            data[1],
-            data[2]
-          );
-        } else {
-          console.log("this path is already in db");
-        }
+async function readAllFiles(folderPath) {
+  let allFiles = [];
+  try {
+    const sortedFiles = await getSortedFilesByLastModifiedTime(folderPath);
+    for (let i = 0; i < sortedFiles.length; i++) {
+      const infoFlagData = await fileModel.isDisabledFile(sortedFiles[i].path);
+      if (!infoFlagData.flag){
+        console.log("EROR");
+        const file = sortedFiles[i];
+        const data = splitPath(file.path);
+        const fileData = {
+          path: file.path,
+          info: infoFlagData.info,
+          mobile: data[0],
+          fileDate: data[1],
+          fileType: data[2]
+        };
+  
+        allFiles.push(fileData);
       }
-    })
-    .catch((err) => console.error(err));
-}
-readAndPutIntoDB();
+    }
+    return allFiles;
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
 
+}
+function getDataToday(files , date) {
+  try {
+    let jsonData = []
+    for (let i = 0; i < files.length; i++) {
+      if(files[i].fileDate === date){
+        jsonData.push(files[i]);
+      }
+    }
+    return jsonData;
+  } catch (err) {
+    console.error(err);
+  }
+}
 app.post("/register", async (req, res) => {
   try {
     const info = req.body.data;
@@ -145,12 +266,12 @@ app.post("/login", async (req, res) => {
       const match = await bcrypt.compare(password, data.password);
       if (match) {
         // Passwords match
-       const user = {
+        const user = {
           data: data,
           loggedIn: true,
         };
         res.json(user);
-        
+
       } else {
         // Passwords do not match, display error message
         res.status(400).json({ error: "كلمة السر غير صحيحة" });
@@ -166,7 +287,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get('/logout',requireAuth, (req, res) => {
+app.get('/logout', requireAuth, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Error destroying session:', err);
@@ -177,16 +298,19 @@ app.get('/logout',requireAuth, (req, res) => {
   });
 });
 // create a route to get data from the database
-app.get("/" ,requireAuth,async (req, res) => {
-  const data = await fileModel.getData();
-  res.json(data);
+app.get("/:yearMonthPath", requireAuth, async (req, res) => {
+  const yearMonthPath = req.params.yearMonthPath;
+  fullPath = folderPath + "\\" + yearMonthPath;
+  const files = await readAllFiles(fullPath);
+  res.json(files)
 });
 
 // create a route to get data today
 app.get("/dateToday/:date", requireAuth, async (req, res) => {
   try {
     const date = req.params.date;
-    const data = await fileModel.getDataToday(date);
+    const files = await readAllFiles(fullPath);
+    const data = getDataToday(files, date);
     res.json(data);
   } catch (error) {
     console.error("Error updating database:", error);
@@ -211,7 +335,7 @@ app.get("/file/:filePath", requireAuth, (req, res) => {
 
 // API For Get The Audio File
 app.get("/audio/:filePath", requireAuth, (req, res) => {
-  const filePath = folderPath + "\\" + req.params.filePath;
+  const filePath = fullPath + "\\" + req.params.filePath;
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.status(404).send("File not found");
@@ -223,11 +347,16 @@ app.get("/audio/:filePath", requireAuth, (req, res) => {
 });
 
 // API To Update The Database With The New Reply
-app.post("/update-complain/:id", requireAuth, async (req, res) => {
+app.post("/update-complain/:path", requireAuth, async (req, res) => {
   try {
-    const id = req.params.id;
+    const path = req.params.path;
     const { info } = req.body;
-    await fileModel.updateData(info, id);
+    if(await fileModel.isFileInDB(path)){
+      await fileModel.updateData(info, path);
+    }else{
+      await fileModel.addData(path, info , 0);
+    }
+    
     res.sendStatus(200);
   } catch (error) {
     console.error("Error updating database:", error);
@@ -235,34 +364,96 @@ app.post("/update-complain/:id", requireAuth, async (req, res) => {
   }
 });
 // API For Delete The Shakwa
-app.delete("/delete-complain/:id", requireAuth, async (req, res) => {
+app.post("/delete-complain/:path", requireAuth, async (req, res) => {
   try {
-    const path = await fileModel.getPathFromID(req.params.id);
-    await fs.promises.unlink(path);
-    console.log("File Deleted");
+    const path = req.params.path;
+    if(await fileModel.isFileInDB(path)){
+      await fileModel.updateFlag(1, path);
+    }else{
+      await fileModel.addData(path, '' , 1);
+    }
+    // const files = await readAllFiles(fullPath);
+    // res.json(files)
+    console.log("File hided");
+    // let message = {
+    //   type: "delete",
+    //   month_year: pathFolders.join(pathFolders.basename(pathFolders.dirname(pathFolders.dirname(path))), pathFolders.basename(pathFolders.dirname(path))),
+    //   data: {
+    //     path: path,
+
+    //   },
+    // };
+    // wss.clients.forEach((client) => {
+    //   client.send(JSON.stringify(message));
+    // });
+    res.sendStatus(200)
   } catch (error) {
-    console.error("Error deleting card:", error);
+    console.error("Error hidding card:", error);
     res.status(500).send("Internal server error");
   }
 });
 
-// Watch files when add or delete
+// function watchingFiles(folderPath){
+//   // Watch files when add or delete
+// const watcher = chokidar.watch(folderPath, {
+//   persistent: true,
+//   ignoreInitial: true,
+//   usePolling: true
+// });
+// watcher
+//   .on("add", async (path) => {
+//     console.log(`File ${path} has been added`);
+//     const data = splitPath(path);
+//     console.log(data);
+//     const result = await fileModel.addData(path, "", data[0], data[1], data[2]);
+//     let item = {
+//       type: "add",
+//       data: {
+//         path: path,
+//         info: "",
+//         id: result,
+//         mobile: data[0],
+//         fileDate: data[1],
+//         fileType: data[2],
+//       },
+//     };
+//     const message = JSON.stringify(item);
+//     wss.clients.forEach((client) => {
+//       client.send(message);
+//     });
+//   })
+//   .on("unlink", async (path) => {
+//     console.log(`File ${path} has been removed`);
+//     const id = await fileModel.getPathID(path);
+//     await fileModel.deleteData(id);
+//     let message = {
+//       type: "delete",
+//       data: {
+//         id: id,
+//       },
+//     };
+//     wss.clients.forEach((client) => {
+//       client.send(JSON.stringify(message));
+//     });
+//   })
+//   .on("error", (error) => console.log(`Watcher error: ${error}`));
+
+// }
 const watcher = chokidar.watch(folderPath, {
   persistent: true,
   ignoreInitial: true,
+  usePolling: true
 });
 watcher
   .on("add", async (path) => {
     console.log(`File ${path} has been added`);
     const data = splitPath(path);
-    console.log(data);
-    const result = await fileModel.addData(path, "", data[0], data[1], data[2]);
+    console.log(" aa    " + pathFolders.dirname(pathFolders.dirname(path)) + " aa");
     let item = {
       type: "add",
+      month_year: pathFolders.join(pathFolders.basename(pathFolders.dirname(pathFolders.dirname(path))), pathFolders.basename(pathFolders.dirname(path))),
       data: {
         path: path,
-        info: "",
-        id: result,
         mobile: data[0],
         fileDate: data[1],
         fileType: data[2],
@@ -275,12 +466,16 @@ watcher
   })
   .on("unlink", async (path) => {
     console.log(`File ${path} has been removed`);
-    const id = await fileModel.getPathID(path);
-    await fileModel.deleteData(id);
+    if(await fileModel.isFileInDB(path)){
+      await fileModel.deleteData(path);
+    }
+    
     let message = {
       type: "delete",
+      month_year: pathFolders.join(pathFolders.basename(pathFolders.dirname(pathFolders.dirname(path))), pathFolders.basename(pathFolders.dirname(path))),
       data: {
-        id: id,
+        path: path,
+
       },
     };
     wss.clients.forEach((client) => {
@@ -291,14 +486,14 @@ watcher
 
 
 // Admin Panel
-app.get("/admin/users" ,isAdmin, async (req, res) => {
+app.get("/admin/users", isAdmin, async (req, res) => {
   const data = await userModel.getAllUsers();
   console.log(data);
   res.json(data);
 });
 app.post("/admin/addUser", isAdmin, async (req, res) => {
   try {
-    const { username, password , role } = req.body.data;
+    const { username, password, role } = req.body.data;
     bcrypt.hash(password, 10, async function (err, hash) {
       // Store hash in database
       dataInfo = {
@@ -311,7 +506,7 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
         res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
       } else {
         const userData = {
-          id : data,
+          id: data,
           username: username,
           role: role,
         }
@@ -322,59 +517,59 @@ app.post("/admin/addUser", isAdmin, async (req, res) => {
     console.error("Error updating database:", error);
     res.sendStatus(500);
   }
-  
+
 });
-app.get("/admin/edit/:id" , isAdmin, async (req, res) => {
+app.get("/admin/edit/:id", isAdmin, async (req, res) => {
   const id = req.params.id;
   const data = await userModel.getUser(id);
   res.json(data);
 });
-app.post("/admin/update/:id", isAdmin,  async (req, res) => {
+app.post("/admin/update/:id", isAdmin, async (req, res) => {
   try {
     const id = req.params.id;
-    const { username, password , role } = req.body.data;
+    const { username, password, role } = req.body.data;
     let hashPassword = password
     console.log("password?" + password);
-    if(password !== ''){
+    if (password !== '') {
       bcrypt.hash(password, 10, async function (err, hash) {
         hashPassword = hash
         const data = [
           username,
           hashPassword,
           role,
-       ]
+        ]
 
-       try{
-        await userModel.updateUser(data, id);
-       }catch(error){
-        res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
-       }
-       console.log('User Updated With New Password!')
-       res.sendStatus(200);
+        try {
+          await userModel.updateUser(data, id);
+        } catch (error) {
+          res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
+        }
+        console.log('User Updated With New Password!')
+        res.sendStatus(200);
       });
-    }else{
+    } else {
       const data = [
         username,
         hashPassword,
         role,
-     ]
-     try{
-      await userModel.updateUser(data, id);
-      console.log('User Updated With Same Password!')
-     res.sendStatus(200);
+      ]
+      try {
+        await userModel.updateUser(data, id);
+        console.log('User Updated With Same Password!')
+        res.sendStatus(200);
 
-     }catch(error){
-      res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
-     }
-     
+      } catch (error) {
+        res.status(400).json({ error: "هذا المستخدم موجود من قبل" });
+      }
+
     }
-    
+
   } catch (error) {
     console.error("Error updating database:", error);
     res.sendStatus(500);
   }
 });
-app.delete("/admin-delete/:id", isAdmin,  async (req, res) => {
+app.delete("/admin-delete/:id", isAdmin, async (req, res) => {
   try {
     const deleteUser = await userModel.deleteUser(req.params.id);
     res.json(deleteUser);
