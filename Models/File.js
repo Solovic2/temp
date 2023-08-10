@@ -23,25 +23,12 @@ async function getPathID(path) {
     }
   }
   // Function to check if the path is already in database
-  async function isDisabledFile(path) {
+  async function isDisabledFile(paths) {
     try {
-      
-      const getRowSql = `SELECT INFO, FLAG FROM COMPLAINS_FILES WHERE PATH = :1`;
-      const getRow = await database.execute(getRowSql, [path]);
-      
-      if(getRow.rows[0]){
-        const data = {
-          info: getRow.rows[0][0],
-          flag: getRow.rows[0][1]
-        }
-        return data;
-      }
-
-      const data = {
-        info: '',
-        flag: 0
-      }
-      return data;
+      const inClause = paths.map(p => `'${p}'`).join(', ');
+      const getRowSql = `SELECT PATH, INFO, FLAG FROM COMPLAINS_FILES WHERE PATH IN (${inClause})`;
+      const getRow = await database.execute(getRowSql, []);
+      return getRow.rows;
       
     } catch (err) {
       console.error(err);

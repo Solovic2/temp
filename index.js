@@ -189,25 +189,41 @@ function getSortedFilesByLastModifiedTime(directoryPath) {
 }
 // Read And Put Into Database
 async function readAllFiles(folderPath) {
-  let allFiles = [];
+  
   try {
+    let allFiles = [];
+    let paths = [];
     const sortedFiles = await getSortedFilesByLastModifiedTime(folderPath);
     for (let i = 0; i < sortedFiles.length; i++) {
-      const infoFlagData = await fileModel.isDisabledFile(sortedFiles[i].path);
-      if (!infoFlagData.flag){
-        console.log("EROR");
-        const file = sortedFiles[i];
-        const data = splitPath(file.path);
+      paths.push(sortedFiles[i].path)
+    }
+    const disabledFiles = await fileModel.isDisabledFile(paths);
+    for (let i = 0; i < paths.length; i++) {
+      const path = paths[i];
+      const data = splitPath(path);
+      // Check if path exists in disabledFiles
+      const index = disabledFiles.findIndex(df => df[0] === path);
+      console.log(index + " " + path);
+      if (index !== -1) {
+          const fileData = {
+            path: path,
+            info: disabledFiles[index][1],
+            mobile: data[0],
+            fileDate: data[1],
+            fileType: data[2]
+          };
+          allFiles.push(fileData);
+      }else{
         const fileData = {
-          path: file.path,
-          info: infoFlagData.info,
+          path: path,
+          info: '',
           mobile: data[0],
           fileDate: data[1],
           fileType: data[2]
         };
-  
         allFiles.push(fileData);
       }
+      
     }
     return allFiles;
   } catch (err) {
@@ -356,7 +372,7 @@ app.post("/update-complain/:path", requireAuth, async (req, res) => {
     }else{
       await fileModel.addData(path, info , 0);
     }
-    
+
     res.sendStatus(200);
   } catch (error) {
     console.error("Error updating database:", error);
