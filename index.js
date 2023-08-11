@@ -336,14 +336,14 @@ app.get("/dateToday/:date", requireAuth, async (req, res) => {
 
 // API For Get The File Text
 app.get("/file/:filePath", requireAuth, (req, res) => {
-  const filePath = folderPath + "\\" + req.params.filePath;
-  console.log(req.params.filePath);
+  const filePath = fullPath + "\\" + req.params.filePath;
+  console.log(filePath);
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.status(404).send("File not found");
     } else {
       res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader("Content-Disposition", `attachment; filename=${filePath}`);
+      res.setHeader("Content-Disposition", `attachment;`);
       res.send(data);
     }
   });
@@ -464,12 +464,13 @@ watcher
   .on("add", async (path) => {
     console.log(`File ${path} has been added`);
     const data = splitPath(path);
-    console.log(" aa    " + pathFolders.dirname(pathFolders.dirname(path)) + " aa");
+    // console.log(" aa    " + pathFolders.dirname(pathFolders.dirname(path)) + " aa");
     let item = {
       type: "add",
       month_year: pathFolders.join(pathFolders.basename(pathFolders.dirname(pathFolders.dirname(path))), pathFolders.basename(pathFolders.dirname(path))),
       data: {
         path: path,
+        info: '',
         mobile: data[0],
         fileDate: data[1],
         fileType: data[2],
