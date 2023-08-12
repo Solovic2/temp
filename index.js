@@ -4,6 +4,7 @@ require('dotenv').config();
 const WebSocket = require("ws");
 const chokidar = require("chokidar");
 const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken');
 const userModel = require("./Models/User");
 const registerationModel = require('./Models/Registration')
 const fileModel = require('./Models/File')
@@ -21,7 +22,7 @@ app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
 }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.SECRET_KEY));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
@@ -264,6 +265,8 @@ app.post("/register", async (req, res) => {
           data: data,
           loggedIn: true,
         };
+        const token = jwt.sign({username: data.username, role: data.role}, process.env.SECRET_KEY);
+        res.cookie('user', token, options)
         res.json(user);
       }
     });
@@ -286,8 +289,16 @@ app.post("/login", async (req, res) => {
           data: data,
           loggedIn: true,
         };
-        res.json(user);
 
+        const options = {
+          httpOnly: false,
+          secure: true,
+          signed: true,
+          maxAge: (1000 * 60 * 60 * 24) // 1 day
+        };
+        const token = jwt.sign({id: data.id, username: data.username, role: data.role}, process.env.SECRET_KEY);
+        res.cookie('user', token, options)
+        res.status(200).json(user);
       } else {
         // Passwords do not match, display error message
         res.status(400).json({ error: "كلمة السر غير صحيحة" });

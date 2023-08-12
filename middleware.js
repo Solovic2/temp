@@ -1,14 +1,14 @@
 // MiddleWare
-const database = require('./db')
 const userModel = require('./Models/User')
+const jwt = require('jsonwebtoken');
 const requireAuth = async (req, res, next) => {
-  console.log(req.cookies);
-    const { user } = req.cookies;
-    const userSession = user ? JSON.parse(user) : false;
-    if(userSession){
-        const user = await userModel.getUser(userSession.data.id);
-        if (userSession.loggedIn === true 
-            && user && user.role === userSession.data.role
+    const  user  = req.signedCookies.user;
+    const userCookie = user ? (user) : false;
+    if(userCookie){
+        // const token = req.signedCookies.user;
+        const userToken = jwt.verify(userCookie, process.env.SECRET_KEY);
+        const user = await userModel.getUser(userToken.id);
+        if (user && user.role === userToken.role
             ) {
           // User is authenticated, proceed to next middleware
           return next();
@@ -24,13 +24,13 @@ const requireAuth = async (req, res, next) => {
   };
   
   const isAdmin = async (req, res, next) => {
-    console.log(req.cookies);
-    const { user } = req.cookies;
-    const userSession = user ? JSON.parse(user) : false;
-    if(userSession){
-        const user = await userModel.getUser(userSession.data.id);
-        if (userSession.loggedIn === true 
-            && user && user.role === userSession.data.role && user.role === 'Admin'
+    const  user  = req.signedCookies.user;
+    const userCookie = user ? (user) : false;
+    
+    if(userCookie){
+      const userToken = jwt.verify(userCookie, process.env.SECRET_KEY);
+        const user = await userModel.getUser(userToken.id);
+        if (user && user.role === userToken.role && user.role === 'Admin'
             ) {
           // User is authenticated, proceed to next middleware
           return next();
