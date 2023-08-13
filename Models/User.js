@@ -73,7 +73,7 @@ async function getUserName(username) {
         const {username, password, role} = data;
         const insertSql = `INSERT INTO COMPLAINS_USERS (USERNAME, PASSWORD, ROLE) VALUES (:1, :2, :3) RETURNING id INTO :output_id`;
         const getRow  = await database.execute(insertSql, [username, password, role, { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }]);
-        console.log('User added to database');
+        console.log('User is added to database');
         return getRow.outBinds[0][0];
       }else{
         return 0;
@@ -93,7 +93,7 @@ async function getUserName(username) {
         params = [data[0], data[1], data[2], id]; 
       }
       const updateRow = await database.execute(updateSql, params);
-      console.log('UserData updated in database');
+      console.log('UserData is updated in database');
     } catch (err) {
       res.status(400).json({ error: "This user already exists" });
     }
@@ -103,7 +103,7 @@ async function getUserName(username) {
     try {
       const deleteSql = `DELETE FROM COMPLAINS_USERS WHERE ID = :1`;
       const deleteRow = await database.execute(deleteSql, [id]);
-      console.log('Data deleted from database' + deleteRow.rowsAffected);
+      console.log('User deleted from database affectedRows is : ' + deleteRow.rowsAffected);
       return deleteRow.rowsAffected;
     } catch (err) {
       console.error(err);
